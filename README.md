@@ -34,5 +34,5 @@
 Сергей Земсков - data analitics, ML  
 Иван Бушуев - ideas, communication  
 Анастасия Казакова - developer  
-Кристина Иванова - finance, analytics  
+Кристина Иванова - analytics, UX дизайнер 
 Юлия Леснова - finance  
