@@ -6,7 +6,7 @@
 - разработан протоип сайта принимающий данные по СЭР
 
 ### Стек технологий
-- flask, docker, python, numpy, pandas, sklearn, catboost
+- flask, docker, python, numpy, pandas, sklearn, catboost, telegram
 
 ### Анализ данных в папке notebooks:
 - EDA_1.ipynb - первичный анализ данных
