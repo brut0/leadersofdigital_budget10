@@ -50,6 +50,9 @@ def send_welc(message):
 
     bot.send_message(message.chat.id, 'Наиболее значимые признаки для прогноза доходов:')
     bot.send_message(message.chat.id, f'{feature_importance[0][1:4]}')
+
+    stick = open('sticker.webp', 'rb')
+    bot.send_sticker(message.chat.id, stick)
     #bot.sendDocument(chat_id=message.chat_id,
     #                         document=open('prediction.csv', "r"))
 
