@@ -5,15 +5,19 @@
 create
 {% endblock %}
 
+
+
 {% block body %}
-    <div class="container mt-5">
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    </div>
+<h1>Выбери два файла: </h1>
+<h1>Первый - Основные параметры прогнозов СЭР</h1>
+<h1>Второй - Налог на доходы физических лиц и на прибыль организаций </h1>
+<h1>Отобразится график и его точки в виде загрузившегося документа </h1>
+
+<form method="POST" enctype="multipart/form-data" action="/upload">
+  <input type="file" name="file[]" multiple="">
+  <input type="submit" value=" Получить точки ">
+</form>
+<p><center><img src="/static/1.PNG" alt="KARELIA"></center></p>
 
 
 
