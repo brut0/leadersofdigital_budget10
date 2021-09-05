@@ -1,85 +1,94 @@
 import numpy as np
 import pandas as pd
-#import matplotlib.pyplot as plt
-#import seaborn as sns
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 from statsmodels.tsa.arima.model import ARIMA
 from catboost import CatBoostRegressor
-from catboost import Pool
-import shap as shap
+from sklearn.preprocessing import StandardScaler
 
 
 class BudgetModel():
-    def __init__(self, X, y, random_seed=42):
+    def __init__(self, X, y, years_to_predict=2, random_seed=42):
         self.SEED = random_seed
-        self.YEARS_PREDICT = 2
+        self.years_to_predict = years_to_predict
         self.X_train, self.X_test = 0, 0
         self.y_train, self.y_test = 0, 0
+        self.feature_importance = []
 
         self.X = X
         self.y = y
 
-    def train(self):
-        self.X_train, self.X_test = self.X[:-self.YEARS_PREDICT], self.X[-self.YEARS_PREDICT:]
-        self.y_train, self.y_test = self.y[:-self.YEARS_PREDICT], self.y[-self.YEARS_PREDICT:]
+        self.X = self.X.dropna(axis=1)
+        self.X_train, self.X_test = self.X[:-self.years_to_predict], self.X[-self.years_to_predict:]
+        self.y_train, self.y_test = self.y[:-self.years_to_predict], self.y[-self.years_to_predict:]
 
-        self.X_train = self.X_train.fillna(0)
-        self.X_test = self.X_test.fillna(0)
+        scaler = StandardScaler()
+        self.X_train = scaler.fit_transform(self.X_train)
+        self.X_test = scaler.transform(self.X_test)
 
     def predict(self):
-        # def linear_fit(X_train=None, y_train=None, target=None):
-        #     model = LinearRegression()
-        #     result = model.fit(X_train, y_train[target])
-        #     return result
-        #
-        # def catboost_fit(X_train=None, y_train=None, target=None):
-        #     model = CatBoostRegressor(**catboost_params)
-        #     result = model.fit(X_train, y_train[target])
-        #     return result
-        #
-        # def arima_fit(X_train=None, y_train=None, target=None):
-        #     model = ARIMA(y_train[target], order=(3, 2, 1))
-        #     result = model.fit()
-        #     return result
-
         catboost_params = {
-            'depth': 6,
-            # 'l2_leaf_reg': 10,
-            'iterations': 30000,
-            'learning_rate': 0.1,
+            'depth': 1,
+            'iterations': 10000,
+            'learning_rate': 0.5,
+            'l2_leaf_reg': 200,
             'eval_metric': 'MAE',
-            'early_stopping_rounds': 50,
-            'verbose': 5000,
-            'thread_count': 4,
+            'od_type': 'IncToDec',
+            'od_pval': 2,
+            'silent': True,
+            'thread_count': -1,
             'random_seed': self.SEED
         }
 
-        # models = {
-        #     'Linear': linear_fit(),
-        #     'ARIMA': arima_fit(),
-        #     'CatBoost': arima_fit()
-        # }
+        models = {
+            'Linear': LinearRegression(),
+            'Ridge': Ridge()
+        }
 
         dfs = []
 
-        for target in self.y.columns[1:]:
-            df_predict = pd.DataFrame({'year': self.y.index[-2:]})
+        for target in self.y.columns[0:]:
+            df_predict = pd.DataFrame({'model': [], 'predicted': [], 'predicted_val': []})
 
-            model = LinearRegression()
+            for k in models:
+                models[k].fit(self.X_train, self.y_train[target])
+                predicted = models[k].predict(self.X_test)
+                predicted_val = models[k].predict(self.X_train)
+                df_predict = df_predict.append({'model': k,
+                                                'predicted': predicted,
+                                                'predicted_val': predicted_val},
+                                               ignore_index=True)
+
+            model = CatBoostRegressor(**catboost_params)
             model.fit(self.X_train, self.y_train[target])
             predicted = model.predict(self.X_test)
-            df_predict['Linear'] = predicted
-
-            # model = CatBoostRegressor(**catboost_params)
-            # model.fit(self.X_train, self.y_train[target])
-            # predicted = model.predict(self.X_test)
-            # df_predict = df_predict.append({'model_name': 'CatBoost', 'model': model, 'predicted': predicted}, ignore_index=True)
+            predicted_val = model.predict(self.X_train)
+            self.feature_importance.append(pd.DataFrame(model.feature_importances_, index=self.X.columns))
+            df_predict = df_predict.append({'model': 'CatBoost',
+                                            'predicted': predicted,
+                                            'predicted_val': predicted_val},
+                                           ignore_index=True)
 
             model = ARIMA(self.y_train[target], order=(3, 2, 1))
             arima_result = model.fit()
-            predicted = arima_result.predict(start=len(self.y_train), end=len(self.y) - 1)
-            df_predict['ARIMA'] = predicted
+            arima_pred = arima_result.predict(start=0, end=len(self.y) - 1)
+            df_predict = df_predict.append({'model': 'ARIMA',
+                                            'predicted': arima_pred.values[-self.years_to_predict:],
+                                            'predicted_val': arima_pred.values[:-self.years_to_predict]},
+                                           ignore_index=True)
 
-            dfs.append(df_predict)
+            df_stacking_test = pd.DataFrame(
+                {y: predict.tolist() for (y, predict) in zip(df_predict['model'], df_predict['predicted'])})
+            df_stacking_train = pd.DataFrame(
+                {y: predict.tolist() for (y, predict) in zip(df_predict['model'], df_predict['predicted_val'])})
+
+            model = Ridge()
+            model.fit(df_stacking_train, self.y_train[target])
+            predicted = model.predict(df_stacking_test)
+
+            dfs.append(predicted)
 
         return dfs
+
+    @property
+    def feature_importances_(self):
+        return self.feature_importance
