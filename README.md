@@ -31,8 +31,8 @@
 
 
 ## Команда проекта
-Сергей Земсков - data analitics, ML  
-Иван Бушуев - ideas, communication  
-Анастасия Казакова - developer  
-Кристина Иванова - analytics, UX дизайнер 
-Юлия Леснова - finance  
+Сергей Земсков - analytics, DA, ML  [<img src=https://github.com/png2378/telegram-icon-updater/blob/master/icons/icomute_22_0.png width="16" height="16"/>](https://t.me/sergiozemskov)  
+Анастасия Казакова - programming  
+Иван Бушуев - analytics, communication  
+Кристина Иванова - UX дизайнер  
+Юлия Леснова - analytics  
